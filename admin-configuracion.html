@@ -4066,7 +4066,7 @@
 
                     <!-- Botón Guardar -->
                     <div class="form-actions" style="margin-top: 1.5rem;">
-                        <button class="btn btn-primary" id="btn-guardar-informacion-sorteo">
+                        <button class="btn btn-primary" id="btn-guardar-informacion-sorteo" onclick="guardarInformacionSorteo()">
                             <i class="fas fa-save"></i> Guardar Información del Sorteo
                         </button>
                     </div>
@@ -10595,6 +10595,10 @@
 
             // --- LÓGICA CONSOLIDADA DE OTROS LISTENERS ---
             // Inicializar eventos de bonos y maquina de suerte
+            const btnGuardarInformacionSorteo = document.getElementById('btn-guardar-informacion-sorteo');
+            if (btnGuardarInformacionSorteo) {
+                btnGuardarInformacionSorteo.onclick = guardarInformacionSorteo;
+            }
             const btnGuardarBonos = document.getElementById('btn-guardar-bonos');
             if (btnGuardarBonos) {
                 btnGuardarBonos.onclick = guardarBonos;
@@ -17786,7 +17790,9 @@
                     throw new Error('No auth token');
                 }
 
-                const API_BASE = (window.rifaplusConfig?.backend?.apiBase)
+                const API_BASE = window.__RIFAPLUS_DEPLOY__?.apiBase
+                    || window.RIFAPLUS_ENV?.apiBase
+                    || window.rifaplusConfig?.backend?.apiBase
                     || window.rifaplusConfig?.obtenerApiBase?.()
                     || window.location.origin;
 
@@ -18058,7 +18064,9 @@
                     throw new Error('No auth token');
                 }
 
-                const API_BASE = (window.rifaplusConfig?.backend?.apiBase)
+                const API_BASE = window.__RIFAPLUS_DEPLOY__?.apiBase
+                    || window.RIFAPLUS_ENV?.apiBase
+                    || window.rifaplusConfig?.backend?.apiBase
                     || window.rifaplusConfig?.obtenerApiBase?.()
                     || window.location.origin;
 
@@ -18568,7 +18576,7 @@
                     throw new Error('No auth token');
                 }
 
-                const API_BASE = (window.rifaplusConfig?.backend?.apiBase) || window.rifaplusConfig?.obtenerApiBase?.() || window.location.origin;
+                const API_BASE = window.__RIFAPLUS_DEPLOY__?.apiBase || window.RIFAPLUS_ENV?.apiBase || window.rifaplusConfig?.backend?.apiBase || window.rifaplusConfig?.obtenerApiBase?.() || window.location.origin;
                 const response = await fetch(`${API_BASE}/api/admin/config`, {
                     method: 'PATCH',
                     headers: {

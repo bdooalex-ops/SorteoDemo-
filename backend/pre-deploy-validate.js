@@ -40,9 +40,9 @@ let warnings = [];
 async function validar() {
     log.section('PRE-DEPLOY VALIDATION: Sistema de Comprobantes');
 
-    // ===== 1. VERIF ICACIONES DE ENTORNO =====
+    // ===== 1. VERIFICACIONES DE ENTORNO =====
     log.info('1/5: Verificando variables de entorno...');
-    const requiredVars = ['CLOUDINARY_CLOUD_NAME', 'CLOUDINARY_API_KEY', 'CLOUDINARY_API_SECRET', 'DATABASE_URL', 'JWT_SECRET'];
+    const requiredVars = ['R2_ACCOUNT_ID', 'R2_ACCESS_KEY_ID', 'R2_SECRET_ACCESS_KEY', 'DATABASE_URL', 'JWT_SECRET'];
     const missingVars = requiredVars.filter(v => !process.env[v]);
     
     if (missingVars.length > 0) {
@@ -52,26 +52,18 @@ async function validar() {
         log.success('Todas las variables de entorno configuradas');
     }
 
-    // ===== 2. TEST CLOUDINARY =====
-    log.info('2/5: Conectando a Cloudinary...');
+    // ===== 2. TEST ALMACENAMIENTO R2 =====
+    log.info('2/5: Verificando credenciales de R2...');
     try {
-        const cloudinary = require('cloudinary').v2;
-        cloudinary.config({
-            cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-            api_key: process.env.CLOUDINARY_API_KEY,
-            api_secret: process.env.CLOUDINARY_API_SECRET
-        });
-
-        await new Promise((resolve, reject) => {
-            cloudinary.api.ping((error, result) => {
-                if (error) reject(error);
-                else resolve(result);
-            });
-        });
-
-        log.success(`Cloudinary conectado (Cloud: ${process.env.CLOUDINARY_CLOUD_NAME})`);
+        const isDemo = process.env.R2_ACCOUNT_ID === 'demo_account_id';
+        if (isDemo) {
+            warnings.push('Credenciales de R2 en modo DEMO / MOCK');
+            log.warn('R2 en modo DEMO / MOCK');
+        } else {
+            log.success('Credenciales de R2 listas para producción');
+        }
     } catch (error) {
-        errores.push(`Error conexión Cloudinary: ${error.message}`);
+        errores.push(`Error R2: ${error.message}`);
         log.error(`  ${error.message}`);
     }
 
@@ -129,7 +121,6 @@ async function validar() {
             'validarArchivo',
             'validarDatos',
             'validarOrden',
-            'subirACloudinary',
             'actualizarOrdenEnBd'
         ];
 

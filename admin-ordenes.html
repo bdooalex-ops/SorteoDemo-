@@ -3178,15 +3178,16 @@ ${window.location.origin}/mis-boletos.html
             }
 
             const isPDF = fullPath.toLowerCase().endsWith('.pdf');
-            const contentHTML = isPDF 
+            const isHEIC = fullPath.toLowerCase().endsWith('.heic') || fullPath.toLowerCase().endsWith('.heif');
+            const contentHTML = (isPDF || isHEIC) 
                 ? `<div style="text-align: center; display: flex; flex-direction: column; align-items: center; gap: 1rem;">
-                    <i class="fas fa-file-pdf" style="font-size: 4rem; color: #E4163A;"></i>
-                    <p style="color: var(--text-dark); font-weight: 500; margin: 0;">Los PDFs se abren en una nueva ventana por razones de seguridad</p>
+                    <i class="fas ${isPDF ? 'fa-file-pdf' : 'fa-file-image'}" style="font-size: 4rem; color: ${isPDF ? '#E4163A' : '#1877F2'};"></i>
+                    <p style="color: var(--text-dark); font-weight: 500; margin: 0;">${isPDF ? 'Los PDFs' : 'Los archivos HEIC de iPhone'} se abren en una nueva ventana por compatibilidad y seguridad</p>
                     <button onclick="window.open('${fullPathSeguro}', '_blank', 'noopener,noreferrer')" class="btn btn-primary" style="padding: 0.75rem 1.5rem; border: none; border-radius: 0.375rem; background: var(--primary); color: white; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem; transition: all 0.2s ease;">
                         <i class="fas fa-external-link-alt"></i> Abrir en nueva ventana
                     </button>
                   </div>`
-                : `<img src="${fullPathHtml}" alt="Comprobante" crossorigin="anonymous" referrerpolicy="no-referrer" style="max-width: 100%; max-height: 100%; object-fit: contain;">`;
+                : `<img src="${fullPathHtml}" alt="Comprobante" referrerpolicy="no-referrer" style="max-width: 100%; max-height: 100%; object-fit: contain;">`;
 
             modal.innerHTML = `
                 <div style="background: white; border-radius: 0.5rem; width: 100%; max-width: 90vw; max-height: 90vh; display: flex; flex-direction: column; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);">
@@ -3194,7 +3195,7 @@ ${window.location.origin}/mis-boletos.html
                         <h2 style="margin: 0; font-size: 1.2rem;">Comprobante de Pago</h2>
                         <div style="display: flex; gap: 0.5rem;">
                             <button onclick="descargarComprobante('${fullPathSeguro}', '${fileNameSeguro}')" class="btn btn-success" style="padding: 0.5rem 1rem; border: none; border-radius: 0.375rem; background: #31A24C; color: white; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; transition: all 0.2s ease;">
-                                <i class="fas fa-download"></i> Descargar
+                                <i class="fas fa-download"></i> Abrir / Descargar
                             </button>
                             <button onclick="document.getElementById('comprobanteViewModal').style.display='none'" class="btn" style="padding: 0.5rem 1rem; border: 1px solid #CED0D4; border-radius: 0.375rem; background: white; color: var(--text-dark); font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 0.5rem; transition: all 0.2s ease;">
                                 <i class="fas fa-times"></i> Cerrar
@@ -3218,13 +3219,7 @@ ${window.location.origin}/mis-boletos.html
         }
 
         function descargarComprobante(url, nombreArchivo) {
-            // Crear un enlace temporal para descargar
-            const enlace = document.createElement('a');
-            enlace.href = url;
-            enlace.download = nombreArchivo || 'comprobante';
-            document.body.appendChild(enlace);
-            enlace.click();
-            document.body.removeChild(enlace);
+            window.open(url, '_blank', 'noopener,noreferrer');
         }
 
         function verComprobante(path) {

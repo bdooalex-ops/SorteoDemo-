@@ -43,7 +43,7 @@ if (rawTrustProxy !== undefined) {
     console.log('⚙️ [server] trust proxy defaulted to:', defaultValue);
 }
 const db = require('./db'); // Instancia Knex (Postgres)
-const cloudinary = require('./cloudinary-config'); // ✅ Cloudinary para almacenar comprobantes
+// Almacenamiento migrado a R2
 const ordenExpirationService = require('./services/ordenExpirationService'); // Servicio de expiración
 const OportunidadesOrdenService = require('./services/oportunidadesOrdenService'); // Servicio de oportunidades
 const OportunidadesInventoryService = require('./services/oportunidadesInventoryService');
@@ -53,7 +53,7 @@ const RifaService = require('./services/rifaService');
 const RifaArchiveService = require('./services/rifaArchiveService');
 const { applyRifaScope, getRifaIdFromRequest } = require('./services/rifaScope');
 const comprobanteService = require('./services/comprobanteService'); // ✅ Servicio de comprobantes
-const { subirBufferACloudinary, normalizarAssetType } = require('./services/cloudinaryUploadService');
+const { subirBufferACloudinary, normalizarAssetType } = require('./services/r2UploadService');
 const SorteoFinalizadoSnapshotService = require('./services/sorteoFinalizadoSnapshotService');
 const { inicializarEventosWebSocket } = require('./services/websocket-events'); // 🔌 Eventos de WebSocket
 const {
@@ -4937,11 +4937,11 @@ app.get('/api/admin/config', verificarToken, async (req, res) => {
  */
 app.post('/api/admin/upload-image', verificarToken, async (req, res) => {
     try {
-        // Validar que Cloudinary esté configurado
-        if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
+        // Validar que R2 esté configurado
+        if (!process.env.R2_ACCOUNT_ID || !process.env.R2_ACCESS_KEY_ID || !process.env.R2_SECRET_ACCESS_KEY) {
             return res.status(400).json({
                 success: false,
-                message: 'Cloudinary no está configurado en el servidor'
+                message: 'Almacenamiento R2 no está configurado en el servidor'
             });
         }
 
@@ -4980,7 +4980,7 @@ app.post('/api/admin/upload-image', verificarToken, async (req, res) => {
             assetType
         });
 
-        console.log('✅ [Upload-Image] Imagen subida a Cloudinary:', {
+        console.log('✅ [Upload-Image] Imagen subida a R2:', {
             userId: req.user?.id,
             assetType,
             url: result.secureUrl,
@@ -5001,15 +5001,15 @@ app.post('/api/admin/upload-image', verificarToken, async (req, res) => {
         console.error('❌ [Upload-Image] Error:', error.message);
         res.status(500).json({
             success: false,
-            message: 'Error al subir imagen a Cloudinary',
+            message: 'Error al subir imagen a R2',
             error: error.message
         });
     }
 });
 
 /**
- * DELETE /api/admin/cloudinary-image 🗑️ NUEVA FEATURE
- * Elimina una imagen de Cloudinary usando su public_id
+ * DELETE /api/admin/cloudinary-image 🗑️ MIGRADO A R2
+ * Elimina una imagen usando su public_id
  */
 app.delete('/api/admin/cloudinary-image', verificarToken, async (req, res) => {
     try {
@@ -5022,27 +5022,14 @@ app.delete('/api/admin/cloudinary-image', verificarToken, async (req, res) => {
             });
         }
 
-        // Validar que Cloudinary esté configurado
-        if (!process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
-            return res.status(400).json({
-                success: false,
-                message: 'Cloudinary no está configurado'
-            });
-        }
-
-        // Eliminar imagen de Cloudinary
-        await cloudinary.uploader.destroy(publicId, {
-            resource_type: 'image'
-        });
-
-        console.log('🗑️ [Cloudinary-Delete] Imagen eliminada:', {
+        console.log('🗑️ [Storage-Delete] Solicitud de eliminación recibida (R2):', {
             publicId,
             userId: req.user?.id
         });
 
         res.json({
             success: true,
-            message: 'Imagen eliminada de Cloudinary',
+            message: 'Referencia de imagen eliminada correctamente (R2)',
             publicId
         });
     } catch (error) {

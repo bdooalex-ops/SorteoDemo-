@@ -604,7 +604,7 @@ body.rifaplus-logo-ready .logo-circle img[data-dynamic-logo="true"] {
     background:
         linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03)),
         linear-gradient(135deg, rgba(var(--primary-rgb), 0.2), rgba(var(--secondary-rgb), 0.12));
-    padding: 4.5rem 1.5rem 1.5rem;
+    padding: 3.5rem 1.5rem 2rem;
     border-radius: 28px;
     text-align: center;
     max-width: 600px;
@@ -614,6 +614,8 @@ body.rifaplus-logo-ready .logo-circle img[data-dynamic-logo="true"] {
     overflow-y: auto;
     position: relative;
     box-shadow: 0 32px 60px rgba(0, 0, 0, 0.32);
+    align-self: center !important;
+    margin: auto !important;
 }
 
 .overlay-link {
@@ -4716,7 +4718,7 @@ footer {
 .maquina-resultado{ margin-top:1rem }
 .maquina-resultado-scroll{ max-height: 500px; overflow-y: auto; overflow-x: hidden; border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 1rem; background: var(--bg-white); margin-bottom: 1rem; -webkit-overflow-scrolling: touch; box-sizing: border-box; width: 100% }
 .generated-row{ display:flex; gap:0.5rem; flex-wrap:wrap; margin-top:0.75rem; width: 100% }
-.numero-chip{ background:var(--primary-light); color:white; padding:0.45rem 0.6rem; border-radius:var(--radius-md); font-weight:600; flex-shrink: 0 }
+.numero-chip{ background:var(--primary); color:white; padding:0.45rem 0.6rem; border-radius:var(--radius-md); font-weight:600; flex-shrink: 0 }
 .generated-actions{ margin-top:0.6rem; display:flex; gap:0.6rem; flex-wrap:wrap }
 
 /* Selección de números */
@@ -7541,10 +7543,10 @@ body.modal-scroll-locked {
     min-width: 50px;
     padding: 0.56rem 0.72rem;
     border-radius: 14px;
-    background: linear-gradient(135deg, rgba(var(--secondary-rgb), 0.14), rgba(var(--primary-rgb), 0.16));
-    color: var(--primary-dark);
-    border: 1px solid rgba(var(--primary-rgb), 0.12);
-    box-shadow: 0 8px 18px rgba(var(--primary-rgb), 0.08);
+    background: var(--primary);
+    color: white;
+    border: none;
+    box-shadow: 0 4px 12px var(--primary-30);
 }
 
 .generated-actions {

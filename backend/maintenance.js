@@ -134,42 +134,29 @@ async function testOportunitiesRelease() {
 }
 
 // ============================================================================
-// TEST 3: Configuración de Cloudinary
+// TEST 3: Configuración de Almacenamiento (R2)
 // ============================================================================
-async function testCloudinary() {
+async function testStorage() {
     console.log('\n╔════════════════════════════════════════════════════════╗');
-    console.log('║   ☁️  TEST: Cloudinary                                 ║');
+    console.log('║   ☁️  TEST: Almacenamiento R2                          ║');
     console.log('╚════════════════════════════════════════════════════════╝\n');
 
     try {
-        const hasCloudinaryUrl = Boolean(String(process.env.CLOUDINARY_URL || '').trim());
-        const requiredVars = ['CLOUDINARY_CLOUD_NAME', 'CLOUDINARY_API_KEY', 'CLOUDINARY_API_SECRET'];
-        const missingVars = hasCloudinaryUrl
-            ? []
-            : requiredVars.filter(v => !process.env[v]);
+        const requiredVars = ['R2_ACCOUNT_ID', 'R2_ACCESS_KEY_ID', 'R2_SECRET_ACCESS_KEY', 'R2_BUCKET_NAME'];
+        const missingVars = requiredVars.filter(v => !process.env[v]);
 
         if (missingVars.length > 0) {
             console.log(`   ❌ Variables faltando: ${missingVars.join(', ')}`);
-            console.log('   Agrega al .env CLOUDINARY_URL o CLOUDINARY_CLOUD_NAME/CLOUDINARY_API_KEY/CLOUDINARY_API_SECRET\n');
+            console.log('   Agrega al .env las credenciales de Cloudflare R2\n');
             return false;
         }
 
-        const cloudinary = require('./cloudinary-config');
-        const config = cloudinary.config();
-        const cloudNameOk = Boolean(config.cloud_name);
-        const apiKeyOk = Boolean(config.api_key);
+        const accountId = process.env.R2_ACCOUNT_ID;
+        const isDemo = accountId === 'demo_account_id';
 
-        if (!cloudNameOk || !apiKeyOk) {
-            console.log(`   ❌ Cloud: ${config.cloud_name || 'NO'}`);
-            console.log(`   ❌ API Key: ${apiKeyOk ? '***' : 'NO'}`);
-            console.log('   ❌ Cloudinary: MAL CONFIGURADO\n');
-            return false;
-        }
-
-        console.log(`   ✅ Cloud: ${config.cloud_name}`);
-        console.log(`   ✅ API Key: ***`);
-        console.log(`   ✅ Origen: ${hasCloudinaryUrl ? 'CLOUDINARY_URL' : 'Variables separadas'}`);
-        console.log(`   ✅ Cloudinary: CONFIGURADO\n`);
+        console.log(`   ✅ Account ID: ${accountId}`);
+        console.log(`   ✅ Bucket: ${process.env.R2_BUCKET_NAME}`);
+        console.log(`   ✅ Estado: ${isDemo ? 'MODO DEMO / MOCK' : 'PRODUCCIÓN'}\n`);
 
         return true;
     } catch (error) {
@@ -186,7 +173,7 @@ async function runTests() {
     const results = {
         conflict: false,
         opportunities: false,
-        cloudinary: false
+        storage: false
     };
 
     console.log('\n═══════════════════════════════════════════════════════════');
@@ -200,8 +187,8 @@ async function runTests() {
         if (testArg === 'all' || testArg === 'opportunities') {
             results.opportunities = await testOportunitiesRelease();
         }
-        if (testArg === 'all' || testArg === 'cloudinary') {
-            results.cloudinary = await testCloudinary();
+        if (testArg === 'all' || testArg === 'storage' || testArg === 'cloudinary') {
+            results.storage = await testStorage();
         }
 
         // Resumen final

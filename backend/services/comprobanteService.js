@@ -14,7 +14,7 @@ const { execSync } = require('child_process');
 const {
     ASSET_TYPES,
     subirBufferACloudinary
-} = require('./cloudinaryUploadService');
+} = require('./r2UploadService');
 
 const SCHEMA_CACHE_TTL_MS = 10 * 60 * 1000;
 let schemaOrdenesValidadoHasta = 0;
