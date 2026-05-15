@@ -874,50 +874,10 @@ class ModalSorteoFinalizado {
         try {
             this.log('🔍 Intentando obtener ganadores...', 'info');
 
-            // 🌟 RESILIENCIA EXTRA: Determinar el estado basándonos en múltiples fuentes para evitar retrasos de sincronización
-            const urlRifa = this.obtenerSlugDeUrl();
-            
-            const rifaEstado = String(
-                snapshot?.estado || 
-                snapshot?.rifa?.estado || 
-                config?.rifa?.estado || 
-                config?.sorteoActivo?.estado || 
-                (urlRifa ? 'depurada' : '')
-            ).toLowerCase();
-
-            const esRifaDepurada = rifaEstado === 'depurada';
             const esVistaAdmin = window.location.pathname.includes('/admin') || window.location.pathname.includes('admin-');
 
-            // --- ESCENARIO A: RIFAS DEPURADAS ---
-            if (esRifaDepurada) {
-                this.log('🧹 Detectada rifa depurada. Buscando snapshot o cache local...', 'info');
-                // 1️⃣ Prioridad 1: Usar snapshot
-                if (snapshot?.ganadores && await this.snapshotCorrespondeARifaActual(snapshot, config)) {
-                    this.log('ℹ️ Usando snapshot persistido de ganadores para rifa depurada', 'exito');
-                    return {
-                        sorteo: snapshot.ganadores.sorteo || [],
-                        presorteo: snapshot.ganadores.presorteo || [],
-                        ruletazos: snapshot.ganadores.ruletazos || []
-                    };
-                }
-                // 2️⃣ Prioridad 2: Usar GanadoresManager (local storage) como fallback
-                if (window.GanadoresManager) {
-                    const ganadoresLocal = window.GanadoresManager.cargarGanadores();
-                    if (ganadoresLocal && (ganadoresLocal.sorteo?.length > 0 || ganadoresLocal.presorteo?.length > 0 || ganadoresLocal.ruletazos?.length > 0)) {
-                        this.log('✅ Usando GanadoresManager local como fallback para rifa depurada', 'exito');
-                        return {
-                            sorteo: ganadoresLocal.sorteo || [],
-                            presorteo: ganadoresLocal.presorteo || [],
-                            ruletazos: ganadoresLocal.ruletazos || []
-                        };
-                    }
-                }
-                this.log('ℹ️ Rifa depurada sin ganadores; se mostrará estado pendiente', 'info');
-                return { sorteo: [], presorteo: [], ruletazos: [] };
-            }
-
-            // --- ESCENARIO B: VISTA DE ADMINISTRACIÓN ---
-            // En el panel de admin, siempre queremos dar prioridad a GanadoresManager local para que los cambios en vivo se reflejen de inmediato
+            // --- ESCENARIO A: VISTA DE ADMINISTRACIÓN ---
+            // En el panel de admin, siempre queremos dar prioridad a GanadoresManager local para reflejar cambios en vivo.
             if (esVistaAdmin && window.GanadoresManager) {
                 const ganadoresLocal = window.GanadoresManager.cargarGanadores();
                 if (ganadoresLocal && (ganadoresLocal.sorteo?.length > 0 || ganadoresLocal.presorteo?.length > 0 || ganadoresLocal.ruletazos?.length > 0)) {
@@ -930,8 +890,24 @@ class ModalSorteoFinalizado {
                 }
             }
 
-            // --- ESCENARIO C: RIFAS NORMALES (VISTA PÚBLICA) ---
-            // 1️⃣ Prioridad 1: Servidor (Fuente de verdad definitiva)
+            // --- ESCENARIO B: SNAPSHOT (FUENTE ABSOLUTA PÚBLICA) ---
+            // Si tenemos el snapshot validado, lo usamos INMEDIATAMENTE.
+            // Esto elimina la condición de carrera en la primera carga donde /api/ganadores
+            // se llama sin X-Rifa-Id listo y devuelve una lista vacía.
+            if (snapshot?.ganadores && await this.snapshotCorrespondeARifaActual(snapshot, config)) {
+                const tieneGanadores = (snapshot.ganadores.sorteo?.length > 0 || snapshot.ganadores.presorteo?.length > 0 || snapshot.ganadores.ruletazos?.length > 0);
+                if (tieneGanadores) {
+                    this.log('🏆 Usando snapshot persistido de ganadores como fuente de verdad absoluta', 'exito');
+                    return {
+                        sorteo: snapshot.ganadores.sorteo || [],
+                        presorteo: snapshot.ganadores.presorteo || [],
+                        ruletazos: snapshot.ganadores.ruletazos || []
+                    };
+                }
+            }
+
+            // --- ESCENARIO C: LLAMADA A LA API (FALLBACK) ---
+            // Si el snapshot estaba vacío o aún no hay snapshot, le preguntamos al servidor.
             let serverSuccess = false;
             let rows = [];
             try {
