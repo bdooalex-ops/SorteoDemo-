@@ -326,6 +326,24 @@ class OrdenExpirationService {
 
                 console.log(`  🔍 Verificación post-update (primeros 5): ${JSON.stringify(boletosVerificacion.map(b => `${b.numero}:${b.estado}`))}`);
 
+                // ⭐ ATOMIC COUNTERS: Decrementar apartados al expirar orden
+                if (orden.rifa_id) {
+                    // Contar cuántas oportunidades hay para esta orden antes de que el service externo las libere
+                    const oppsCount = await trx('orden_oportunidades')
+                        .where('rifa_id', orden.rifa_id)
+                        .where('numero_orden', orden.numero_orden)
+                        .where('estado', 'apartado')
+                        .count('* as count')
+                        .first();
+
+                    await trx('rifas')
+                        .where('id', orden.rifa_id)
+                        .decrement({
+                            total_apartados: actualizadosBoletos,
+                            total_oportunidades_apartadas: parseInt(oppsCount?.count) || 0
+                        });
+                }
+
                 return { actualizadosBoletos, boletosVerificacion };
             });
 

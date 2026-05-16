@@ -17,8 +17,18 @@
             const isPublicApi = isApiRequest && !pathname.startsWith('/api/admin/');
 
             if (isPublicApi) {
-                const params = new URLSearchParams(window.location.search);
-                const slug = params.get('rifa') || params.get('slug') || sessionStorage.getItem('rifaplus_session_slug') || '';
+                const searchParams = new URLSearchParams(window.location.search);
+                const pathname = window.location.pathname.toLowerCase();
+                const filename = pathname.split('/').pop() || '';
+                const esHome = pathname === '/' || filename === 'index.html' || filename === '';
+                
+                // Prioridad 1: URL
+                let slug = searchParams.get('rifa') || searchParams.get('slug');
+                
+                // Prioridad 2: SessionStorage (solo si no es el home o si el home ya tiene el slug en URL)
+                if (!slug && !esHome) {
+                    slug = sessionStorage.getItem('rifaplus_session_slug_v1');
+                }
                 
                 if (slug && !resolvedUrl.searchParams.has('rifa')) {
                     resolvedUrl.searchParams.set('rifa', slug);

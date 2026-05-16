@@ -99,36 +99,44 @@
     "estado": "borrador",
     "rangos": [
       {
-        "fin": 99999,
+        "fin": 4999,
         "inicio": 0,
-        "nombre": "Sorteo Completo"
+        "nombre": "0 - 5K"
+      },
+      {
+        "fin": 9999,
+        "inicio": 5000,
+        "nombre": "5K - 10K"
+      },
+      {
+        "fin": 14999,
+        "inicio": 10000,
+        "nombre": "10K - 15K"
+      },
+      {
+        "fin": 19999,
+        "inicio": 15000,
+        "nombre": "15K - 20K"
+      },
+      {
+        "fin": 24999,
+        "inicio": 20000,
+        "nombre": "20K - 25K"
       }
     ],
     "galeria": {
       "enabled": true,
       "imagenes": [
         {
-          "url": "https://pub-53e0847449ba4304a00a14ba8e9eda9c.r2.dev/rifaplus/sorteos/gallery-1778741656446-Gemini_Generated_Image_l7299ll7299ll729-9a8796588821.webp",
+          "url": "https://pub-53e0847449ba4304a00a14ba8e9eda9c.r2.dev/rifaplus/sorteos/gallery-1778729924908-Gemini_Generated_Image_c6lj1lc6lj1lc6lj-a6ea87f3748b.webp",
           "titulo": "Imagen 1",
-          "publicId": "rifaplus/sorteos/gallery-1778741656446-Gemini_Generated_Image_l7299ll7299ll729-9a8796588821.webp",
+          "publicId": "rifaplus/sorteos/gallery-1778729924908-Gemini_Generated_Image_c6lj1lc6lj1lc6lj-a6ea87f3748b.webp",
           "descripcion": ""
         },
         {
-          "url": "https://pub-53e0847449ba4304a00a14ba8e9eda9c.r2.dev/rifaplus/sorteos/gallery-1778741663789-honda-civic-tras-23fa7d22dd85.webp",
+          "url": "https://pub-53e0847449ba4304a00a14ba8e9eda9c.r2.dev/rifaplus/sorteos/gallery-1778729940535-Gemini_Generated_Image_210n6210n6210n62-4a4d7c2f99a0.webp",
           "titulo": "Imagen 2",
-          "publicId": "rifaplus/sorteos/gallery-1778741663789-honda-civic-tras-23fa7d22dd85.webp",
-          "descripcion": ""
-        },
-        {
-          "url": "https://pub-53e0847449ba4304a00a14ba8e9eda9c.r2.dev/rifaplus/sorteos/gallery-1778741670151-frente-civic-0dd975f3d542.webp",
-          "titulo": "Imagen 3",
-          "publicId": "rifaplus/sorteos/gallery-1778741670151-frente-civic-0dd975f3d542.webp",
-          "descripcion": ""
-        },
-        {
-          "url": "https://pub-53e0847449ba4304a00a14ba8e9eda9c.r2.dev/rifaplus/sorteos/gallery-1778741675782-PulsarN250-01-68a1b658fc32.webp",
-          "titulo": "Imagen 4",
-          "publicId": "rifaplus/sorteos/gallery-1778741675782-PulsarN250-01-68a1b658fc32.webp",
+          "publicId": "rifaplus/sorteos/gallery-1778729940535-Gemini_Generated_Image_210n6210n6210n62-4a4d7c2f99a0.webp",
           "descripcion": ""
         }
       ]
@@ -137,26 +145,14 @@
     "descuentos": {
       "reglas": [
         {
-          "total": 95,
-          "ahorro": 5,
-          "precio": 95,
-          "cantidad": 100
-        },
-        {
-          "total": 270,
-          "ahorro": 30,
-          "precio": 270,
-          "cantidad": 300
-        },
-        {
           "total": 440,
-          "ahorro": 60,
+          "ahorro": 560,
           "precio": 440,
           "cantidad": 500
         },
         {
           "total": 850,
-          "ahorro": 150,
+          "ahorro": 1150,
           "precio": 850,
           "cantidad": 1000
         }
@@ -169,18 +165,18 @@
         {
           "emoji": "🥤",
           "titulo": "Bono iPhone 17 Pro Max",
-          "descripcion": "¡Compra 50 boletos o más y asegura este premio! Si resultas ganador de cualquier lugar con esta cantidad de boletos, el iPhone es tuyo."
+          "descripcion": "¡Compra 500 boletos o más y asegura este premio! Si resultas ganador de cualquier lugar con esta cantidad de boletos, el iPhone es tuyo."
         },
         {
           "emoji": "💵",
           "titulo": "Bono Miembro de WhatsApp",
-          "descripcion": "Si eres el ganador del Sorteo y eres miembro activo de nuestro canal de WhatsApp, ¡te llevas $10,000 MXN extras al instante!"
+          "descripcion": "Si eres el ganador del 1er o 2do lugar y eres miembro activo de nuestro canal de WhatsApp, ¡te llevas $10,000 MXN extras al instante!"
         }
       ],
       "enabled": true
     },
-    "descripcion": "¡Estrena con SaDev! Participa por un Honda Civic 2025 y una Pulsar N250. Boletos desde $10 pesos con promociones por volumen. Transparencia total con resultados en vivo y bonos especiales para nuestra comunidad. ¡Tu suerte comienza aquí!",
-    "fechaSorteo": "2026-06-30T21:15:00",
+    "descripcion": "¡Multiplicamos tus posibilidades! En esta edición de la Billetiza, 12 personas cambiarán su historia con nosotros. Siente la adrenalina de nuestra transmisión en vivo y descubre si tu número es uno de los elegidos para llevarse la gloria este mes.",
+    "fechaSorteo": "2026-05-30T21:15:00",
     "publicacion": {
       "bonos": true,
       "ruletazo": true,
@@ -193,14 +189,13 @@
       "logoVerificadoHeader": true
     },
     "zonaHoraria": "Hora Centro Mexico",
-    "nombreSorteo": "🍀🔥 Honda Civi 2025 + Pulsar n250 🍀🔥",
-    "precioBoleto": 10,
-    "totalBoletos": 100000,
-    "edicionNombre": "Sorteo Demo - Sadev edicion No. 2",
-    "horaPresorteo": "21:15",
+    "nombreSorteo": "🍀🔥 Iphone 17 pro max + 10K 🍀🔥",
+    "precioBoleto": 2,
+    "totalBoletos": 25000,
+    "edicionNombre": "Sorteo Demo - Sadev edición No. 3",
+    "horaPresorteo": "",
     "maquinaSuerte": {
       "quickPicks": [
-        1,
         5,
         10,
         20,
@@ -211,40 +206,32 @@
       "mostrarNotaDisponibilidad": false
     },
     "oportunidades": {
-      "enabled": false,
+      "enabled": true,
       "rango_oculto": {
         "fin": 99999,
-        "inicio": 20000
+        "inicio": 25000
       },
       "multiplicador": 3,
       "rango_visible": {
-        "fin": 19999,
+        "fin": 24999,
         "inicio": 0
       }
     },
-    "fechaPresorteo": "2026-05-30T21:15:00",
+    "fechaPresorteo": null,
     "modoOptimizado": false,
     "sistemaPremios": {
       "sorteo": [
         {
           "icono": "🥇",
           "nombre": "Primer Lugar",
-          "premio": "Honda Civic 2025",
+          "premio": "iPhone 17 Pro max y $10,000.00 MXN",
           "posicion": 1,
-          "descripcion": "Honda Civic modelo 2025 en excelentes condiciones, estéticamente como nuevo."
+          "descripcion": "Telefono completamente nuevo y 10 mil pesos en transferencia"
         }
       ],
       "enabled": true,
       "mensaje": "Múltiples oportunidades de ganar premios extraordinarios",
-      "presorteo": [
-        {
-          "icono": "🔥",
-          "nombre": "Presorteo",
-          "premio": "Pulsar N250 Negra",
-          "posicion": 1,
-          "descripcion": "Motocicleta Pulsar N250 color negra, totalmente nueva de agencia."
-        }
-      ],
+      "presorteo": [],
       "ruletazos": []
     },
     "busquedaBoletos": {
@@ -260,35 +247,23 @@
     },
     "informacionSorteo": [
       {
-        "titulo": "Selección de Ganadores",
-        "descripcion": "Los ganadores se determinan mediante las 5 cifras del sorteo Tris Clásico (21:15 h) el 30 de mayo y 30 de junio. Si el número premiado no fue vendido, el premio se asigna al ganador del sorteo inmediato siguiente hasta encontrar un boleto liquidado."
+        "titulo": "Fecha y Cierre de Venta",
+        "descripcion": "El sorteo se llevará a cabo el 30 de mayo de 2026. El sistema cerrará la venta de boletos en el horario indicado por el contador de esta web; solo participarán los boletos pagados y confirmados antes del cierre."
       },
       {
-        "titulo": "Estado de los Premios",
-        "descripcion": "El Honda Civic 2025 se entrega en condiciones impecables (como nuevo) y la motocicleta Pulsar N250 Negra se entrega totalmente nueva de agencia."
+        "titulo": "Elección de Ganadores",
+        "descripcion": "El 1er Lugar se define con los primeros 3 dígitos del Tris Clásico (9:15 PM); el 2do Lugar con esos mismos dígitos al revés. Los 10 ruletazos de $1K se rifarán en vivo mediante esta web."
       },
       {
-        "titulo": "Requisitos de Reclamo",
-        "descripcion": "Solo participan boletos pagados y confirmados en el sistema. El ganador debe presentar identificación oficial vigente que coincida exactamente con el nombre registrado al comprar."
+        "titulo": "Transmisión y Resultados",
+        "descripcion": "Todo el proceso será transmitido en vivo. Los ganadores se notificarán vía WhatsApp y los resultados se publicarán simultáneamente en esta web y en nuestras redes sociales."
       },
       {
-        "titulo": "Gastos y Entrega",
-        "descripcion": "La entrega se realizará en la ubicación designada por el organizador. Todos los gastos de traslado, trámites de propiedad, impuestos y seguros son responsabilidad exclusiva del ganador."
-      },
-      {
-        "titulo": "Venta Mínima",
-        "descripcion": "Se requiere la venta del 80% del boletaje total para realizar los sorteos. El organizador se reserva el derecho de posponer las fechas si no se cumple esta meta, notificando por canales oficiales."
-      },
-      {
-        "titulo": "Evidencia de Entrega",
-        "descripcion": "El ganador acepta la toma de fotografía y video durante la entrega del premio para dar testimonio de legalidad y transparencia en las redes sociales de la plataforma."
-      },
-      {
-        "titulo": "Cancelaciones",
-        "descripcion": "No se realizan reembolsos ni cancelaciones de boletos una vez efectuado y confirmado el pago."
+        "titulo": "Meta de Venta (80%)",
+        "descripcion": "El sorteo requiere el 80% de boletos vendidos. De no cumplirse la meta, el organizador reprogramará la fecha notificando por nuestros canales oficiales. Los boletos seguirán siendo válidos."
       }
     ],
-    "fechaSorteoFormato": "30 de Junio del 2026",
+    "fechaSorteoFormato": "30 de Mayo del 2026",
     "promocionPorTiempo": {
       "enabled": false,
       "fechaFin": null,
@@ -302,8 +277,8 @@
       "fechaInicio": "2026-03-31T19:03"
     },
     "tiempoApartadoHoras": 1,
-    "fechaPresorteoFormato": "30 de Mayo del 2026",
-    "informacionSorteoIntro": "Consulta las bases y cláusulas que rigen este sorteo. Al participar, aceptas los siguientes términos diseñados para garantizar la transparencia del proceso y la seguridad jurídica tanto del organizador como del participante.",
+    "fechaPresorteoFormato": "",
+    "informacionSorteoIntro": "Consulta los lineamientos oficiales que rigen la Billetiza Mensual. Al adquirir tu boleto, aceptas las siguientes cláusulas diseñadas para garantizar la transparencia del proceso y la seguridad en la entrega de los premios.",
     "modalFinalizadoSnapshot": null,
     "pushOrderWarningMinutes": [
       45
@@ -311,7 +286,12 @@
     "intervaloLimpiezaMinutos": 10,
     "promocionesOportunidades": {
       "enabled": true,
-      "ejemplos": []
+      "ejemplos": [
+        {
+          "boletos": 1,
+          "oportunidades": 4
+        }
+      ]
     }
   },
   "tema": {
@@ -379,7 +359,7 @@
       "canalWhatsappNombre": "Chicas bien - contenido y encuentros",
       "grupoWhatsappNombre": ""
     },
-    "imagenPrincipal": "https://pub-53e0847449ba4304a00a14ba8e9eda9c.r2.dev/rifaplus/sorteos/principal-1778741682143-Gemini_Generated_Image_l7299ll7299ll729-11978d414c8a.webp",
+    "imagenPrincipal": "https://pub-53e0847449ba4304a00a14ba8e9eda9c.r2.dev/rifaplus/sorteos/principal-1778729947509-Gemini_Generated_Image_c6lj1lc6lj1lc6lj-89b35826cc8a.webp",
     "mensajesWhatsapp": {
       "ganador": "",
       "rechazo": "",

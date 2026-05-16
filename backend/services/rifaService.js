@@ -383,6 +383,7 @@ class RifaService {
       throw error;
     }
 
+    let wasAlreadyPublic = false;
     await this.db.transaction(async (trx) => {
       // Advisory lock transaccional (Postgres): garantiza exclusión mutua en este cambio.
       await trx.raw('SELECT pg_advisory_xact_lock(?)', [this.PUBLIC_ACTIVATION_LOCK_KEY]);
@@ -394,12 +395,16 @@ class RifaService {
         throw error;
       }
 
-      // Mantener la unicidad: primero apagar todas, luego prender solo la seleccionada.
-      await trx('rifas').update({ activa_publica: false, updated_at: trx.fn.now() });
-      await trx('rifas').where('id', id).update({ activa_publica: true, updated_at: trx.fn.now() });
+      wasAlreadyPublic = Boolean(existe.activa_publica);
+
+      if (!wasAlreadyPublic) {
+        // Mantener la unicidad: primero apagar todas, luego prender solo la seleccionada.
+        await trx('rifas').update({ activa_publica: false, updated_at: trx.fn.now() });
+        await trx('rifas').where('id', id).update({ activa_publica: true, updated_at: trx.fn.now() });
+      }
     });
     this.defaultCacheAt = 0;
-    return true;
+    return { success: true, wasAlreadyPublic };
   }
 
   async marcarDepurada(rifaId) {

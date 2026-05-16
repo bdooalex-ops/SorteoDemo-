@@ -684,23 +684,58 @@ class BoletoService {
    * @returns {Promise<{success: boolean}>}
    */
   static async confirmarVenta(ordenId, contexto = {}) {
-    try {
-      const resultado = await this._whereRifa(db('boletos_estado'), contexto)
-        .where('numero_orden', ordenId)
-        .where('estado', 'apartado')
-        .update({
-          estado: 'vendido',
-          updated_at: new Date()
-        });
+    return db.transaction(async (trx) => {
+      try {
+        const resultado = await this._whereRifa(trx('boletos_estado'), contexto)
+          .where('numero_orden', ordenId)
+          .where('estado', 'apartado')
+          .update({
+            estado: 'vendido',
+            updated_at: new Date()
+          });
 
-      return {
-        success: true,
-        boletosActualizados: resultado
-      };
-    } catch (error) {
-      console.error('Error confirmarVenta:', error.message);
-      throw error;
-    }
+        // ⭐ ATOMIC COUNTERS: Actualizar rifas (Apartado -> Vendido)
+        const { rifaId } = this._normalizarContextoRifa(contexto);
+        if (rifaId && resultado > 0) {
+          // Contar oportunidades para esta orden
+          const oppsCount = await trx('orden_oportunidades')
+            .where('rifa_id', rifaId)
+            .where('numero_orden', ordenId)
+            .where('estado', 'apartado')
+            .count('* as count')
+            .first();
+          
+          const oportunidadesActualizadas = parseInt(oppsCount?.count) || 0;
+
+          // Actualizar oportunidades
+          await trx('orden_oportunidades')
+            .where('rifa_id', rifaId)
+            .where('numero_orden', ordenId)
+            .update({
+              estado: 'vendido'
+            });
+
+          await trx('rifas')
+            .where('id', rifaId)
+            .decrement({
+              total_apartados: resultado,
+              total_oportunidades_apartadas: oportunidadesActualizadas
+            })
+            .increment({
+              total_vendidos: resultado,
+              total_oportunidades_vendidas: oportunidadesActualizadas
+            });
+        }
+
+        return {
+          success: true,
+          boletosActualizados: resultado
+        };
+      } catch (error) {
+        console.error('Error confirmarVenta:', error.message);
+        throw error;
+      }
+    });
   }
 
   /**
@@ -754,6 +789,33 @@ class BoletoService {
 
         console.log(`[BoletoService.cancelarOrden] Orden ${ordenId} cancelada`);
 
+        // ⭐ ATOMIC COUNTERS: Decrementar apartados
+        const { rifaId } = this._normalizarContextoRifa(contexto);
+        if (rifaId && actualizado > 0) {
+           const oppsCount = await trx('orden_oportunidades')
+            .where('rifa_id', rifaId)
+            .where('numero_orden', ordenId)
+            .where('estado', 'apartado')
+            .count('* as count')
+            .first();
+
+          await trx('rifas')
+            .where('id', rifaId)
+            .decrement({
+              total_apartados: actualizado,
+              total_oportunidades_apartadas: parseInt(oppsCount?.count) || 0
+            });
+          
+          // Liberar oportunidades
+          await trx('orden_oportunidades')
+            .where('rifa_id', rifaId)
+            .where('numero_orden', ordenId)
+            .update({
+              estado: 'disponible',
+              numero_orden: null
+            });
+        }
+
         return { success: true, boletosLiberados: actualizado };
       } catch (error) {
         throw error;
@@ -797,6 +859,33 @@ class BoletoService {
             estado: 'expirada',
             updated_at: new Date()
           });
+
+        // ⭐ ATOMIC COUNTERS: Decrementar apartados de todas las rifas afectadas
+        const { rifaId } = this._normalizarContextoRifa(contexto);
+        if (rifaId && resultado > 0) {
+          const oppsCount = await trx('orden_oportunidades')
+            .where('rifa_id', rifaId)
+            .whereIn('numero_orden', ordenIds)
+            .where('estado', 'apartado')
+            .count('* as count')
+            .first();
+
+          await trx('rifas')
+            .where('id', rifaId)
+            .decrement({
+              total_apartados: resultado,
+              total_oportunidades_apartadas: parseInt(oppsCount?.count) || 0
+            });
+          
+          // Liberar oportunidades
+          await trx('orden_oportunidades')
+            .where('rifa_id', rifaId)
+            .whereIn('numero_orden', ordenIds)
+            .update({
+              estado: 'disponible',
+              numero_orden: null
+            });
+        }
 
         return { boletosLiberados: resultado };
       } catch (error) {

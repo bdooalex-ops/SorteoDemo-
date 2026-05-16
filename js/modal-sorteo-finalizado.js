@@ -934,6 +934,20 @@ class ModalSorteoFinalizado {
             }
 
             if (serverSuccess) {
+                // Si el servidor retornó 0 ganadores, y tenemos un snapshot con ganadores,
+                // es muy probable que la BD haya sido depurada o la respuesta esté vacía por latencia.
+                if (rows.length === 0 && snapshot?.ganadores) {
+                    const tieneGanadores = (snapshot.ganadores.sorteo?.length > 0 || snapshot.ganadores.presorteo?.length > 0 || snapshot.ganadores.ruletazos?.length > 0);
+                    if (tieneGanadores) {
+                        this.log('🏆 Servidor retornó 0 ganadores, pero existe un snapshot válido. Usando snapshot persistido.', 'exito');
+                        return {
+                            sorteo: snapshot.ganadores.sorteo || [],
+                            presorteo: snapshot.ganadores.presorteo || [],
+                            ruletazos: snapshot.ganadores.ruletazos || []
+                        };
+                    }
+                }
+
                 // Si el servidor contestó con éxito, ESTA es la lista real de ganadores (aunque sea vacía)
                 const mapped = { sorteo: [], presorteo: [], ruletazos: [] };
                 rows.forEach((r, idx) => {

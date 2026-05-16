@@ -79,6 +79,7 @@ const { obtenerConfigExpiracion } = require('./config-loader'); // Fallback/base
 const dbUtils = require('./db-utils');
 const { calcularDescuentoCompartido, auditarConsistenciaPrecios, calcularTotalesServidor } = require('./calculo-precios-server'); // ✅ Cálculo sincronizado
 const { resolverConfigOportunidades } = require('./oportunidades-config');
+const CounterSyncService = require('./services/counterSyncService');
 const PUBLIC_READ_RATE_LIMIT_PATHS = new Set([
     '/api/health',
     '/api/cliente',
@@ -3945,27 +3946,37 @@ app.post('/api/admin/rifas/:id/activar-publica', verificarToken, async (req, res
         }
 
         const rifaId = Number.parseInt(req.params.id, 10);
-        await rifaService.activarPublica(rifaId);
+        const activarResult = await rifaService.activarPublica(rifaId);
+        // activarResult returns true or { success: true, wasAlreadyPublic: boolean }
+        const wasAlreadyPublic = typeof activarResult === 'object' && activarResult.wasAlreadyPublic === true;
         limpiarCacheConfiguracionPublica();
 
         let pushCampaign = null;
         try {
-            const rifaPublica = await rifaService.resolverContexto({ rifaId, fallbackActive: false });
-            if (rifaPublica) {
-                const campaign = construirCampanaNuevaRifaDesdeContexto(rifaPublica, {
-                    rifaId: rifaPublica.id,
-                    rifaSlug: rifaPublica.slug,
-                    rifaNombre: rifaPublica.nombre
-                });
-                if (campaign.enabled && campaign.autoSendOnPublicActivation) {
-                    pushCampaign = await encolarCampanaPushDesdeServidor(campaign, {
-                        priority: 200
+            if (wasAlreadyPublic) {
+                console.log(`ℹ️ [PUSH] Rifa ${rifaId} ya era pública. Se omite campaña de nueva rifa.`);
+                pushCampaign = {
+                    skipped: true,
+                    reason: 'already_public'
+                };
+            } else {
+                const rifaPublica = await rifaService.resolverContexto({ rifaId, fallbackActive: false });
+                if (rifaPublica) {
+                    const campaign = construirCampanaNuevaRifaDesdeContexto(rifaPublica, {
+                        rifaId: rifaPublica.id,
+                        rifaSlug: rifaPublica.slug,
+                        rifaNombre: rifaPublica.nombre
                     });
-                } else {
-                    pushCampaign = {
-                        skipped: true,
-                        reason: campaign.enabled ? 'auto_send_disabled' : 'campaign_disabled'
-                    };
+                    if (campaign.enabled && campaign.autoSendOnPublicActivation) {
+                        pushCampaign = await encolarCampanaPushDesdeServidor(campaign, {
+                            priority: 200
+                        });
+                    } else {
+                        pushCampaign = {
+                            skipped: true,
+                            reason: campaign.enabled ? 'auto_send_disabled' : 'campaign_disabled'
+                        };
+                    }
                 }
             }
         } catch (pushError) {
@@ -6222,6 +6233,17 @@ app.patch('/api/admin/config', verificarToken, async (req, res) => {
             }
         });
 
+        // ⭐ ATOMIC COUNTERS: Sincronizar contadores si se cambió algo de la rifa
+        if (req.body.rifa) {
+            const rifaIdActual = Number.parseInt(req.rifaContext?.id, 10);
+            if (rifaIdActual) {
+                // Ejecutar en segundo plano para no bloquear la respuesta
+                CounterSyncService.sincronizarRifa(rifaIdActual).catch(e => {
+                    console.error('[CounterSync] Error en auto-sync post-config:', e.message);
+                });
+            }
+        }
+
     } catch (error) {
         log('error', '❌ PATCH /api/admin/config error', {
             error: error.message,
@@ -7340,6 +7362,16 @@ app.post('/api/ordenes', limiterOrdenes, async (req, res) => {
                             };
                         }
 
+                        // ⭐ ATOMIC COUNTERS: Incrementar apartados en la tabla rifas
+                        if (rifaIdActual) {
+                            await trx('rifas')
+                                .where('id', rifaIdActual)
+                                .increment({
+                                    total_apartados: boletosValidos.length,
+                                    total_oportunidades_apartadas: oportunidadesActualizadas || 0
+                                });
+                        }
+
                         createdResult = {
                             isDuplicate: false,
                             ordenId: ordenId,
@@ -7354,6 +7386,16 @@ app.post('/api/ordenes', limiterOrdenes, async (req, res) => {
                         };
                         break; // success
                     } else {
+                        // ⭐ ATOMIC COUNTERS: Incrementar apartados en la tabla rifas
+                        if (rifaIdActual) {
+                            await trx('rifas')
+                                .where('id', rifaIdActual)
+                                .increment({
+                                    total_apartados: boletosValidos.length,
+                                    total_oportunidades_apartadas: 0
+                                });
+                        }
+
                         createdResult = {
                             isDuplicate: false,
                             ordenId: ordenId,
@@ -9788,10 +9830,10 @@ app.get('/api/public/ordenes-stats', async (req, res) => {
 
         console.log(`[STATS_DEBUG] Request Slug: ${rifaContext?.slug}, ID: ${currentRifaId}, TotalConfig: ${totalBoletosRifa}, Fallback: ${isFallback}`);
 
-        // Si es fallback y estamos en una página que espera una rifa específica, esto es un error
+        // ✅ MEJORA: Si es fallback y tenemos un slug mismatch, loguear pero permitir
+        // usar el fallback para evitar romper la UI pública con errores 400.
         if (isFallback && (req.query.rifa || req.headers['x-rifaplus-rifa-slug'])) {
-            console.warn('[STATS_ERROR] Fallback detected when explicit slug was requested');
-            return res.status(400).json({ success: false, message: 'Rifa no identificada (Context mismatch)' });
+            console.warn(`[STATS_DEBUG] Context mismatch (Slug requested: ${req.query.rifa || req.headers['x-rifaplus-rifa-slug']}), but using fallback ID: ${rifaContext?.id}`);
         }
 
 
@@ -9901,9 +9943,10 @@ app.get('/api/public/boletos/stats', async (req, res) => {
         const cacheSuffix = String(rifaContext.slug || rifaIdActual);
         const totalBoletos = Number(config.totalBoletos) || 100;
 
-        // 🛡️ BLOQUEO DE CONTAMINACIÓN: Si se pidió un slug pero caímos en fallback, error.
+        // ✅ MEJORA: Si es fallback y tenemos un slug mismatch, loguear pero permitir
+        // usar el fallback para evitar romper la UI pública con errores 400.
         if (isFallback && (req.query.rifa || req.headers['x-rifaplus-rifa-slug'])) {
-            return res.status(400).json({ success: false, message: 'Rifa no identificada (Context mismatch)' });
+            console.warn(`[BOLETOS_STATS_DEBUG] Context mismatch (Slug requested: ${req.query.rifa || req.headers['x-rifaplus-rifa-slug']}), but using fallback ID: ${rifaContext?.id}`);
         }
 
         // Por defecto cache largo para público; para peticiones admin/autenticadas usar TTL mucho menor
@@ -9944,18 +9987,28 @@ app.get('/api/public/boletos/stats', async (req, res) => {
             });
         }
 
-        // Función para obtener stats desde BD con estrategia más rápida
+        // Función para obtener stats desde BD con estrategia de Contadores Atómicos (Ultra Rápida)
         const fetchStats = async () => {
             try {
-                // ⭐ OPTIMIZACIÓN: Query más rápida usando índices
-                // Separar en dos queries para cada estado (usa índices mejor)
+                // ⭐ OPTIMIZACIÓN: Leer contadores ya calculados de la tabla rifas
+                const statsRifa = await db('rifas')
+                    .select('total_vendidos', 'total_apartados', 'total_oportunidades_vendidas', 'total_oportunidades_apartadas')
+                    .where('id', rifaIdActual)
+                    .first();
+
+                if (statsRifa) {
+                    return {
+                        vendidos: parseInt(statsRifa.total_vendidos) || 0,
+                        apartados: parseInt(statsRifa.total_apartados) || 0,
+                        oportunidades_vendidas: parseInt(statsRifa.total_oportunidades_vendidas) || 0,
+                        oportunidades_apartadas: parseInt(statsRifa.total_oportunidades_apartadas) || 0
+                    };
+                }
+
+                // Fallback: Si no hay contadores (no debería pasar tras migración), usar método tradicional
                 const [vendidosResult, apartadosResult] = await Promise.all([
-                    db('boletos_estado').modify((qb) => {
-                        if (rifaIdActual) qb.where('rifa_id', rifaIdActual);
-                    }).where('estado', 'vendido').count('* as count').first(),
-                    db('boletos_estado').modify((qb) => {
-                        if (rifaIdActual) qb.where('rifa_id', rifaIdActual);
-                    }).where('estado', 'apartado').count('* as count').first()
+                    db('boletos_estado').where('rifa_id', rifaIdActual).where('estado', 'vendido').count('* as count').first(),
+                    db('boletos_estado').where('rifa_id', rifaIdActual).where('estado', 'apartado').count('* as count').first()
                 ]);
 
                 return {
@@ -9964,11 +10017,9 @@ app.get('/api/public/boletos/stats', async (req, res) => {
                 };
             } catch (dbError) {
                 console.warn('[PublicBoletoStats] DB Query error (usando caché anterior):', dbError.message);
-                // Si la BD falla, usar caché anterior si existe
                 if (serverCache.boletosStatsCached?.[cacheSuffix]) {
                     return serverCache.boletosStatsCached[cacheSuffix];
                 }
-                // Si no hay caché, devolver error
                 throw dbError;
             }
         };
@@ -11578,13 +11629,27 @@ app.patch('/api/ordenes/:id/estado', verificarToken, async (req, res) => {
                             estado: 'vendido'
                         });
 
-                    if (oportunidadesConfirmadas > 0) {
-                        console.log(`[Orden ${id}] Confirmada: ${oportunidadesConfirmadas} oportunidades marcadas como VENDIDO`);
+                        if (oportunidadesConfirmadas > 0) {
+                            console.log(`[Orden ${id}] Confirmada: ${oportunidadesConfirmadas} oportunidades marcadas como VENDIDO`);
+                        }
+
+                        // ⭐ ATOMIC COUNTERS: Actualizar rifas (Apartado -> Vendido)
+                        if (rifaIdActual) {
+                            await trx('rifas')
+                                .where('id', rifaIdActual)
+                                .decrement({
+                                    total_apartados: boletos.length,
+                                    total_oportunidades_apartadas: oportunidadesConfirmadas || 0
+                                })
+                                .increment({
+                                    total_vendidos: boletos.length,
+                                    total_oportunidades_vendidas: oportunidadesConfirmadas || 0
+                                });
+                        }
                     }
                 }
-            }
 
-            // Si cambia a 'cancelada' → boletos vuelven a 'disponible'
+                // Si cambia a 'cancelada' → boletos vuelven a 'disponible'
             if (estado === 'cancelada' && ordenActual.estado !== 'cancelada') {
                 console.log(`[Orden ${id}] Boletos a cancelar:`, boletos);
 
@@ -11622,6 +11687,27 @@ app.patch('/api/ordenes/:id/estado', verificarToken, async (req, res) => {
 
                 if (oportunidadesLiberadas > 0) {
                     console.log(`[Orden ${id}] Cancelada: ${oportunidadesLiberadas} oportunidades devueltas a DISPONIBLE`);
+                }
+
+                // ⭐ ATOMIC COUNTERS: Actualizar rifas (Liberar Apartados)
+                if (rifaIdActual) {
+                    // Solo decrementar si el estado ANTERIOR era 'pendiente' (ya que estaba en apartados)
+                    // Si era 'confirmada', hay que decrementar de vendidos
+                    if (ordenActual.estado === 'pendiente') {
+                        await trx('rifas')
+                            .where('id', rifaIdActual)
+                            .decrement({
+                                total_apartados: boletos.length,
+                                total_oportunidades_apartadas: oportunidadesLiberadas || 0
+                            });
+                    } else if (ordenActual.estado === 'confirmada') {
+                        await trx('rifas')
+                            .where('id', rifaIdActual)
+                            .decrement({
+                                total_vendidos: boletos.length,
+                                total_oportunidades_vendidas: oportunidadesLiberadas || 0
+                            });
+                    }
                 }
             }
 
@@ -12518,7 +12604,25 @@ app.post('/api/admin/ordenes-manual', verificarToken, async (req, res) => {
                     estado: 'vendido',
                     numero_orden: numeroOrden
                 });
-        });
+
+                // ⭐ ATOMIC COUNTERS: Incrementar vendidos en la tabla rifas
+                if (rifaIdActual) {
+                    // Contar cuántas oportunidades se marcaron como vendido
+                    const oppsCount = await trx('orden_oportunidades')
+                        .where('rifa_id', rifaIdActual)
+                        .where('numero_orden', numeroOrden)
+                        .where('estado', 'vendido')
+                        .count('* as count')
+                        .first();
+
+                    await trx('rifas')
+                        .where('id', rifaIdActual)
+                        .increment({
+                            total_vendidos: boletos.length,
+                            total_oportunidades_vendidas: parseInt(oppsCount?.count) || 0
+                        });
+                }
+            });
 
         refrescarCachesTrasCambioInventario();
 
@@ -12646,6 +12750,30 @@ app.patch('/api/admin/boletos/:numero/liberar', verificarToken, async (req, res)
                                 });
                         }
 
+                        // ⭐ ATOMIC COUNTERS: Decrementar contador correspondiente
+                        if (rifaIdActual) {
+                            const isVendido = orden.estado === 'confirmada' || orden.estado === 'completada' || orden.estado === 'liquidada';
+                            const counterToDecrement = isVendido ? 'total_vendidos' : 'total_apartados';
+                            const oppCounterToDecrement = isVendido ? 'total_oportunidades_vendidas' : 'total_oportunidades_apartadas';
+
+                            // Contar oportunidades reales de este boleto en esta orden
+                            const oppsCount = await trx('orden_oportunidades')
+                                .modify((qb) => aplicarFiltroRifa(qb, rifaIdActual))
+                                .where('numero_orden', orden.numero_orden)
+                                .where('numero_boleto', numBoleto)
+                                .count('* as count')
+                                .first();
+                            
+                            const totalOpps = parseInt(oppsCount?.count) || 0;
+
+                            await trx('rifas')
+                                .where('id', rifaIdActual)
+                                .decrement({
+                                    [counterToDecrement]: 1,
+                                    [oppCounterToDecrement]: totalOpps
+                                });
+                        }
+
                         return {
                             encontrado: true,
                             orden: orden.numero_orden,
@@ -12688,6 +12816,43 @@ app.patch('/api/admin/boletos/:numero/liberar', verificarToken, async (req, res)
             success: false,
             message: 'Error al liberar boleto',
             error: process.env.NODE_ENV === 'development' ? error.message : undefined
+        });
+    }
+});
+
+/**
+ * POST /api/admin/boletos/sincronizar-contadores
+ * Sincroniza manualmente los contadores atómicos de la rifa actual
+ * recalculando desde boletos_estado y orden_oportunidades.
+ */
+app.post('/api/admin/boletos/sincronizar-contadores', verificarToken, async (req, res) => {
+    try {
+        if (req.usuario.rol !== 'administrador') {
+            return res.status(403).json({ success: false, message: 'Permiso denegado' });
+        }
+
+        const rifaIdActual = obtenerRifaIdRequest(req);
+
+        if (!rifaIdActual) {
+            return res.status(400).json({ success: false, message: 'No se pudo determinar la rifa' });
+        }
+
+        const result = await CounterSyncService.sincronizarRifa(rifaIdActual);
+        
+        // Limpiar caches de stats para que reflejen los nuevos valores
+        limpiarCacheBoletosPublicos();
+
+        res.json({
+            success: true,
+            message: 'Contadores sincronizados correctamente',
+            data: result
+        });
+    } catch (error) {
+        console.error('[Admin] Error sincronizando contadores:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error al sincronizar contadores',
+            error: error.message
         });
     }
 });
