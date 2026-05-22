@@ -114,6 +114,13 @@ function resolveApiBase(env, html, requestUrl) {
 async function fetchMetadata(apiBase, requestUrl, pathname) {
     const url = new URL(`${apiBase}/api/og-metadata`);
     const publicUrl = new URL(requestUrl);
+
+    // Propagar todos los parámetros de consulta (?rifa=s2, ?slug=..., etc.)
+    // para que el backend pueda identificar la rifa correcta en redes sociales
+    for (const [key, value] of publicUrl.searchParams.entries()) {
+        url.searchParams.set(key, value);
+    }
+
     url.searchParams.set('path', pathname || '/');
     url.searchParams.set('publicBase', publicUrl.origin);
 
