@@ -3,11 +3,19 @@
 // y configura las URLs correctas para socket.io y API
 
 (function setupEnvironment() {
-    console.log('⚙️  [Environment] Detectando entorno...');
-    
-    // Obtener hostname actual (ej: localhost, 127.0.0.1, rifas-torres.com, etc)
     const hostname = window.location.hostname;
     const protocol = window.location.protocol; // http: o https:
+
+    // 🤫 Silenciador inteligente: limpia la consola en producción para clientes,
+    // pero permite reactivar los logs agregando ?debug=true en la URL.
+    const isLocal = ['localhost', '127.0.0.1'].includes(hostname);
+    const hasDebugParam = new URLSearchParams(window.location.search).has('debug');
+    if (!isLocal && !hasDebugParam) {
+        console.log = function() {};
+        console.info = function() {};
+    }
+
+    console.log('⚙️  [Environment] Detectando entorno...');
     
     const apiBase = typeof window.rifaplusConfig?.obtenerApiBase === 'function'
         ? window.rifaplusConfig.obtenerApiBase()
